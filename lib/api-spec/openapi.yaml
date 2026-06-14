@@ -1,0 +1,416 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Japanese Kana Quiz API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: quiz
+    description: Quiz session operations
+  - name: results
+    description: Quiz result operations
+  - name: admin
+    description: Admin analytics operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /quiz/session:
+    post:
+      operationId: createQuizSession
+      tags: [quiz]
+      summary: Start a new quiz session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizSessionInput"
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizSession"
+
+  /quiz/session/{sessionId}/submit:
+    post:
+      operationId: submitQuizResult
+      tags: [quiz]
+      summary: Submit completed quiz result
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizResultInput"
+      responses:
+        "201":
+          description: Result saved and notifications sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizResult"
+
+  /results:
+    get:
+      operationId: listResults
+      tags: [results]
+      summary: List all quiz results
+      parameters:
+        - name: quizType
+          in: query
+          schema:
+            type: string
+            enum: [hiragana, katakana, mixed]
+        - name: playerName
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+        - name: minScore
+          in: query
+          schema:
+            type: integer
+        - name: maxScore
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultsPage"
+    delete:
+      operationId: deleteAllResults
+      tags: [results]
+      summary: Delete all quiz history
+      responses:
+        "200":
+          description: All results deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+
+  /results/{id}:
+    get:
+      operationId: getResult
+      tags: [results]
+      summary: Get a single quiz result with full answer breakdown
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Quiz result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizResult"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteResult
+      tags: [results]
+      summary: Delete a single quiz result
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Result deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Not found
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get admin dashboard aggregate statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /admin/user-stats:
+    get:
+      operationId: getUserStats
+      tags: [admin]
+      summary: Get per-user quiz statistics
+      responses:
+        "200":
+          description: Per-user stats list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserStats"
+
+  /admin/missed-kana:
+    get:
+      operationId: getMissedKana
+      tags: [admin]
+      summary: Get most frequently missed kana characters
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Missed kana list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MissedKana"
+
+  /admin/score-trend:
+    get:
+      operationId: getScoreTrend
+      tags: [admin]
+      summary: Get average score per day for trend chart
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: Score trend data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScoreTrendPoint"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    QuizSessionInput:
+      type: object
+      required: [quizType, totalQuestions]
+      properties:
+        playerName:
+          type: string
+        quizType:
+          type: string
+          enum: [hiragana, katakana, mixed]
+        totalQuestions:
+          type: integer
+
+    QuizSession:
+      type: object
+      required: [id, quizType, totalQuestions, createdAt]
+      properties:
+        id:
+          type: integer
+        playerName:
+          type: string
+        quizType:
+          type: string
+        totalQuestions:
+          type: integer
+        createdAt:
+          type: string
+
+    QuizResultInput:
+      type: object
+      required: [score, totalQuestions, timeTakenSeconds, answers]
+      properties:
+        score:
+          type: integer
+        totalQuestions:
+          type: integer
+        timeTakenSeconds:
+          type: integer
+        answers:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnswerDetail"
+
+    QuizResult:
+      type: object
+      required: [id, sessionId, quizType, score, totalQuestions, percentage, timeTakenSeconds, grade, createdAt]
+      properties:
+        id:
+          type: integer
+        sessionId:
+          type: integer
+        playerName:
+          type: string
+        quizType:
+          type: string
+        score:
+          type: integer
+        totalQuestions:
+          type: integer
+        percentage:
+          type: number
+        timeTakenSeconds:
+          type: integer
+        grade:
+          type: string
+        createdAt:
+          type: string
+        answers:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnswerDetail"
+
+    AnswerDetail:
+      type: object
+      required: [kana, romaji, userAnswer, correct]
+      properties:
+        kana:
+          type: string
+        romaji:
+          type: string
+        userAnswer:
+          type: string
+        correct:
+          type: boolean
+
+    ResultsPage:
+      type: object
+      required: [results, total]
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuizResult"
+        total:
+          type: integer
+
+    DeleteResponse:
+      type: object
+      required: [deleted]
+      properties:
+        deleted:
+          type: integer
+
+    AdminStats:
+      type: object
+      required: [totalSessions, averageScore, averagePercentage, bestScore, totalKanaAnswered, hiraganaCount, katakanaCount, mixedCount]
+      properties:
+        totalSessions:
+          type: integer
+        averageScore:
+          type: number
+        averagePercentage:
+          type: number
+        bestScore:
+          type: integer
+        totalKanaAnswered:
+          type: integer
+        hiraganaCount:
+          type: integer
+        katakanaCount:
+          type: integer
+        mixedCount:
+          type: integer
+
+    UserStats:
+      type: object
+      required: [playerName, totalTests, averagePercentage, bestScore, totalQuestions]
+      properties:
+        playerName:
+          type: string
+        totalTests:
+          type: integer
+        averagePercentage:
+          type: number
+        bestScore:
+          type: integer
+        totalQuestions:
+          type: integer
+
+    MissedKana:
+      type: object
+      required: [kana, romaji, missCount]
+      properties:
+        kana:
+          type: string
+        romaji:
+          type: string
+        missCount:
+          type: integer
+
+    ScoreTrendPoint:
+      type: object
+      required: [date, averagePercentage, sessionCount]
+      properties:
+        date:
+          type: string
+        averagePercentage:
+          type: number
+        sessionCount:
+          type: integer
