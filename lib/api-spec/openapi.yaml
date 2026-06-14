@@ -1,0 +1,372 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Japanese Kana Quiz API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: quiz
+    description: Quiz submission operations
+  - name: admin
+    description: Admin operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /share/{id}:
+    get:
+      operationId: getSharedResult
+      tags: [quiz]
+      summary: Get a shared quiz result (public, no auth)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Shared quiz result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizResult"
+        "404":
+          description: Not found
+
+  /submit-result:
+    post:
+      operationId: submitResult
+      tags: [quiz]
+      summary: Submit a quiz result
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizResultInput"
+      responses:
+        "201":
+          description: Result saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizResult"
+        "400":
+          description: Invalid input
+
+  /results:
+    get:
+      operationId: getResults
+      tags: [admin]
+      summary: Get all quiz results (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: mode
+          in: query
+          schema:
+            type: string
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuizResult"
+        "401":
+          description: Unauthorized
+
+  /results/{id}:
+    get:
+      operationId: getResult
+      tags: [admin]
+      summary: Get a specific result
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Quiz result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizResult"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteResult
+      tags: [admin]
+      summary: Delete a result
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+
+  /admin/login:
+    post:
+      operationId: adminLogin
+      tags: [admin]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthToken"
+        "401":
+          description: Invalid credentials
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get dashboard statistics
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+        "401":
+          description: Unauthorized
+
+  /results/export/csv:
+    get:
+      operationId: exportResultsCsv
+      tags: [admin]
+      summary: Export results as CSV
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: CSV data
+          content:
+            text/csv:
+              schema:
+                type: string
+        "401":
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    QuizResultInput:
+      type: object
+      required:
+        - name
+        - mode
+        - score
+        - totalQuestions
+        - accuracy
+        - timeTaken
+        - correctAnswers
+        - incorrectAnswers
+        - detailedAnswers
+      properties:
+        name:
+          type: string
+        discord:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        mode:
+          type: string
+          description: "hiragana | katakana | mixed"
+        quizMode:
+          type: string
+          description: "multiple-choice | typing"
+        score:
+          type: integer
+        totalQuestions:
+          type: integer
+        accuracy:
+          type: number
+        timeTaken:
+          type: integer
+          description: Time in seconds
+        correctAnswers:
+          type: integer
+        incorrectAnswers:
+          type: integer
+        detailedAnswers:
+          type: string
+          description: JSON string of detailed answer breakdown
+
+    QuizResult:
+      type: object
+      required:
+        - id
+        - name
+        - mode
+        - score
+        - totalQuestions
+        - accuracy
+        - timeTaken
+        - correctAnswers
+        - incorrectAnswers
+        - submittedAt
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        discord:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        mode:
+          type: string
+        quizMode:
+          type: ["string", "null"]
+        score:
+          type: integer
+        totalQuestions:
+          type: integer
+        accuracy:
+          type: number
+        timeTaken:
+          type: integer
+        correctAnswers:
+          type: integer
+        incorrectAnswers:
+          type: integer
+        detailedAnswers:
+          type: ["string", "null"]
+        submittedAt:
+          type: string
+
+    AdminLoginInput:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    AuthToken:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+
+    AdminStats:
+      type: object
+      required:
+        - totalUsers
+        - totalQuizzes
+        - averageScore
+        - highestScore
+        - lowestScore
+        - mostMissedKana
+      properties:
+        totalUsers:
+          type: integer
+        totalQuizzes:
+          type: integer
+        averageScore:
+          type: number
+        highestScore:
+          type: integer
+        lowestScore:
+          type: integer
+        mostMissedKana:
+          type: array
+          items:
+            type: object
+            required:
+              - kana
+              - count
+            properties:
+              kana:
+                type: string
+              count:
+                type: integer
+
+    DeleteResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
