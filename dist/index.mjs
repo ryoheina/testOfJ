@@ -61791,6 +61791,7 @@ var routes_default = router4;
 
 // src/app.ts
 var app = (0, import_express5.default)();
+app.set("etag", false);
 app.use(
   (0, import_pino_http.default)({
     logger,
