@@ -37371,6 +37371,7 @@ var import_express5 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path from "path";
+import { existsSync } from "fs";
 
 // src/routes/index.ts
 var import_express4 = __toESM(require_express2(), 1);
@@ -61797,7 +61798,11 @@ app.use(import_express5.default.json());
 app.use(import_express5.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 if (process.env.NODE_ENV === "production") {
-  const staticDir = path.join(process.cwd(), "artifacts/kana-quiz/dist/public");
+  const candidates = [
+    path.join(process.cwd(), "public"),
+    path.join(process.cwd(), "artifacts/kana-quiz/dist/public")
+  ];
+  const staticDir = candidates.find(existsSync) ?? candidates[0];
   app.use(import_express5.default.static(staticDir));
   app.get("*", (_req, res) => {
     res.sendFile(path.join(staticDir, "index.html"));

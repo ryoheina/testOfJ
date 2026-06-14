@@ -1,15 +1,21 @@
 # Kana Quiz - Railway Deployment
 
-## Setup on Railway
+## Required environment variables on Railway
 
-1. Create new project -> Deploy from GitHub (or upload this folder)
-2. Add PostgreSQL plugin (DATABASE_URL is set automatically)
-3. Set environment variables:
-   - NODE_ENV=production
-   - SESSION_SECRET=any-long-random-string
-4. Deploy - no build step needed, everything is pre-compiled
+| Variable | Where to get it |
+|----------|----------------|
+| NODE_ENV | Set to: production |
+| SESSION_SECRET | Any random string |
+| DATABASE_URL | Auto-set by Railway PostgreSQL plugin |
 
-## Admin
+## Deploy steps
+1. Push this folder to a GitHub repo
+2. New Project on railway.app -> Deploy from GitHub
+3. Add PostgreSQL plugin (sets DATABASE_URL automatically)
+4. Set NODE_ENV=production and SESSION_SECRET in Variables tab
+5. Done - no build step needed
+
+## Admin login
 - URL: /admin
 - Username: admin
-- Password: (the one you set)
+- Password: rlaeoqja20070925

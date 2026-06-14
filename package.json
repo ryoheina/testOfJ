@@ -1,1 +1,8 @@
-{"name":"kana-quiz","version":"1.0.0","private":true,"scripts":{"start":"node --enable-source-maps dist/index.mjs"}}
+{
+  "name": "kana-quiz",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node --enable-source-maps dist/index.mjs"
+  }
+}
