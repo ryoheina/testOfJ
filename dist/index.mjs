@@ -59765,12 +59765,13 @@ var insertQuizResultSchema = createInsertSchema(quizResultsTable).omit({
 
 // ../../lib/db/src/index.ts
 var { Pool: Pool3 } = esm_default;
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?"
+var connectionString = process.env.DATABASE_URL ?? "";
+if (!connectionString) {
+  console.warn(
+    "[db] WARNING: DATABASE_URL is not set. Add a PostgreSQL plugin on Railway (Settings > Variables) and redeploy."
   );
 }
-var pool = new Pool3({ connectionString: process.env.DATABASE_URL });
+var pool = new Pool3({ connectionString: connectionString || "postgresql://localhost/placeholder" });
 var db = drizzle(pool, { schema: schema_exports });
 
 // src/middlewares/auth.ts
@@ -61821,12 +61822,40 @@ var port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
-app_default.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
+async function migrate() {
+  if (!process.env.DATABASE_URL) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS quiz_results (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        discord TEXT,
+        email TEXT,
+        mode TEXT NOT NULL,
+        quiz_mode TEXT,
+        score INTEGER NOT NULL,
+        total_questions INTEGER NOT NULL,
+        accuracy REAL NOT NULL,
+        time_taken INTEGER NOT NULL,
+        correct_answers INTEGER NOT NULL,
+        incorrect_answers INTEGER NOT NULL,
+        detailed_answers TEXT,
+        submitted_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+    logger.info("Database ready");
+  } catch (err) {
+    logger.error({ err }, "Migration warning (table may already exist)");
   }
-  logger.info({ port }, "Server listening");
+}
+migrate().then(() => {
+  app_default.listen(port, (err) => {
+    if (err) {
+      logger.error({ err }, "Error listening on port");
+      process.exit(1);
+    }
+    logger.info({ port }, "Server listening");
+  });
 });
 /*! Bundled license information:
 
