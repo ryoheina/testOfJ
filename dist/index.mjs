@@ -61820,7 +61820,7 @@ if (process.env.NODE_ENV === "production") {
   ];
   const staticDir = candidates.find(existsSync) ?? candidates[0];
   app.use(import_express5.default.static(staticDir));
-  app.get("*", (_req, res) => {
+  app.use((_req, res) => {
     res.sendFile(path.join(staticDir, "index.html"));
   });
 }
