@@ -59765,13 +59765,28 @@ var insertQuizResultSchema = createInsertSchema(quizResultsTable).omit({
 
 // ../../lib/db/src/index.ts
 var { Pool: Pool3 } = esm_default;
-var connectionString = process.env.DATABASE_URL ?? "";
-if (!connectionString) {
-  console.warn(
-    "[db] WARNING: DATABASE_URL is not set. Add a PostgreSQL plugin on Railway (Settings > Variables) and redeploy."
-  );
+function buildPoolConfig(databaseUrl) {
+  if (!databaseUrl) {
+    console.warn(
+      "[db] WARNING: DATABASE_URL is not set. Add a PostgreSQL plugin on Railway and redeploy."
+    );
+    return { host: "localhost", database: "placeholder" };
+  }
+  try {
+    const u = new URL(databaseUrl);
+    return {
+      host: u.hostname,
+      port: u.port ? parseInt(u.port, 10) : 5432,
+      database: u.pathname.replace(/^\//, ""),
+      user: u.username ? decodeURIComponent(u.username) : void 0,
+      password: u.password ? decodeURIComponent(u.password) : void 0,
+      ssl: { rejectUnauthorized: false }
+    };
+  } catch {
+    return { connectionString: databaseUrl, ssl: { rejectUnauthorized: false } };
+  }
 }
-var pool = new Pool3({ connectionString: connectionString || "postgresql://localhost/placeholder" });
+var pool = new Pool3(buildPoolConfig(process.env.DATABASE_URL));
 var db = drizzle(pool, { schema: schema_exports });
 
 // src/middlewares/auth.ts
