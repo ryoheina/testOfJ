@@ -59772,6 +59772,7 @@ function buildPoolConfig(databaseUrl) {
     );
     return { host: "localhost", database: "placeholder" };
   }
+  const isProd = process.env.NODE_ENV === "production";
   try {
     const u = new URL(databaseUrl);
     return {
@@ -59780,10 +59781,10 @@ function buildPoolConfig(databaseUrl) {
       database: u.pathname.replace(/^\//, ""),
       user: u.username ? decodeURIComponent(u.username) : void 0,
       password: u.password ? decodeURIComponent(u.password) : void 0,
-      ssl: { rejectUnauthorized: false }
+      ssl: isProd ? { rejectUnauthorized: false } : false
     };
   } catch {
-    return { connectionString: databaseUrl, ssl: { rejectUnauthorized: false } };
+    return { connectionString: databaseUrl, ssl: isProd ? { rejectUnauthorized: false } : false };
   }
 }
 var pool = new Pool3(buildPoolConfig(process.env.DATABASE_URL));
